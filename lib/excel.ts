@@ -131,6 +131,7 @@ export async function parseSpreadsheetFile(file: File): Promise<ParsedRow[]> {
   const rows: ParsedRow[] = rawRows.map((raw) => {
     const extra_data: Record<string, string> = {};
     for (const header of headers) {
+      if (!header.trim() || header.startsWith("__EMPTY")) continue;
       if (header === nameKey || header === phoneKey || header === cnicKey) continue;
       const value = cellToString(raw[header]);
       if (value !== "") extra_data[header.trim()] = value;
