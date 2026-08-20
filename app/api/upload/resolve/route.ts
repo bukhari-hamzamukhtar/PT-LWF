@@ -1,0 +1,111 @@
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { diffFields, logFieldChanges } from "@/lib/history";
+import { trimToNull } from "@/lib/normalize";
+import type { DuplicateResolution, ParsedRow } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
+
+interface ResolveRequestBody {
+  existingId: string;
+  row: ParsedRow;
+  action: DuplicateResolution;
+}
+
+const VALID_ACTIONS: DuplicateResolution[] = ["overwrite", "keep_original", "merge"];
+
+/** Field-level merge rule shared by "overwrite" and "merge". */
+function resolveField(action: "overwrite" | "merge", existingValue: string, newValue: string): string {
+  if (action === "overwrite") {
+    // The incoming value wins wherever it was actually provided; a blank cell
+    // in the upload never erases data that already exists.
+    return newValue !== "" ? newValue : existingValue;
+  }
+  // merge: whatever is already on file wins; the incoming value only fills a gap.
+  return existingValue !== "" ? existingValue : newValue;
+}
+
+export async function POST(request: Request) {
+  let body: ResolveRequestBody;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  const { existingId, row, action } = body ?? {};
+
+  if (!existingId || !row || !VALID_ACTIONS.includes(action)) {
+    return NextResponse.json({ error: "Missing or invalid fields in request." }, { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("lalas")
+    .select("*")
+    .eq("id", existingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("Failed to fetch existing lala during resolve:", fetchError);
+    return NextResponse.json({ error: "Database error while looking up this entry." }, { status: 500 });
+  }
+  if (!existing) {
+    return NextResponse.json(
+      { error: "That entry no longer exists — it may have been deleted or edited by someone else." },
+      { status: 404 }
+    );
+  }
+
+  if (action === "keep_original") {
+    // Nothing to change; the incoming row is discarded and no audit entry is needed
+    // since no data actually changed.
+    return NextResponse.json({ lala: existing, action });
+  }
+
+  const incoming: ParsedRow = {
+    name: (row.name ?? "").toString().trim(),
+    phone_number: (row.phone_number ?? "").toString().trim(),
+    cnic: (row.cnic ?? "").toString().trim(),
+  };
+
+  const newValues = {
+    name: resolveField(action, existing.name ?? "", incoming.name),
+    phone_number: resolveField(action, existing.phone_number ?? "", incoming.phone_number),
+    cnic: resolveField(action, existing.cnic ?? "", incoming.cnic),
+  };
+
+  const oldValues = {
+    name: existing.name ?? "",
+    phone_number: existing.phone_number ?? "",
+    cnic: existing.cnic ?? "",
+  };
+
+  const changes = diffFields(oldValues, newValues);
+
+  if (changes.length === 0) {
+    return NextResponse.json({ lala: existing, action });
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("lalas")
+    .update({
+      name: trimToNull(newValues.name),
+      phone_number: trimToNull(newValues.phone_number),
+      cnic: trimToNull(newValues.cnic),
+    })
+    .eq("id", existingId)
+    .select()
+    .single();
+
+  if (updateError) {
+    console.error("Failed to update lala during resolve:", updateError);
+    return NextResponse.json({ error: "Database error while saving this entry." }, { status: 500 });
+  }
+
+  await logFieldChanges(supabase, "update", existingId, updated.name ?? existing.name, changes);
+
+  return NextResponse.json({ lala: updated, action });
+}
