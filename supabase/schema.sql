@@ -14,6 +14,7 @@ create table if not exists lalas (
   cnic          text,
   help_status   text not null default 'Pending' check (help_status in ('Yes', 'No', 'Pending')),
   details       text,
+  extra_data    jsonb not null default '{}'::jsonb,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz  -- non-null = sitting in the trash bin
@@ -80,3 +81,6 @@ create index if not exists idx_history_lala_id     on history_logs (lala_id);
 -- client too, so it's disabled here to match how the app actually works.
 alter table lalas         disable row level security;
 alter table history_logs  disable row level security;
+
+-- Preserve columns that vary between source workbooks on existing databases.
+alter table lalas add column if not exists extra_data jsonb not null default '{}'::jsonb;

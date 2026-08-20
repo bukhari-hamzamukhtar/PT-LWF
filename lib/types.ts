@@ -9,6 +9,7 @@ export interface Lala {
   cnic: string | null;
   help_status: HelpStatus;
   details: string | null;
+  extra_data: Record<string, string> | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -33,6 +34,7 @@ export interface ParsedRow {
   name: string;
   phone_number: string;
   cnic: string;
+  extra_data: Record<string, string>;
 }
 
 export type ConflictMatch = "cnic" | "phone_number" | "both";

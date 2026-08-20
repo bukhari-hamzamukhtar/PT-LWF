@@ -71,7 +71,7 @@ export function hasAcceptedExtension(fileName: string): boolean {
 }
 
 /**
- * Parses an uploaded .xlsx / .xls / .csv file into rows of { name, phone_number, cnic }.
+ * Parses an uploaded .xlsx / .xls / .csv file while preserving every column.
  *
  * - Column headers are matched case-insensitively against common variants, so the
  *   file doesn't need to use our exact column names.
@@ -128,11 +128,21 @@ export async function parseSpreadsheetFile(file: File): Promise<ParsedRow[]> {
     );
   }
 
-  const rows: ParsedRow[] = rawRows.map((raw) => ({
-    name: nameKey ? cellToString(raw[nameKey]) : "",
-    phone_number: phoneKey ? cellToString(raw[phoneKey]) : "",
-    cnic: cnicKey ? cellToString(raw[cnicKey]) : "",
-  }));
+  const rows: ParsedRow[] = rawRows.map((raw) => {
+    const extra_data: Record<string, string> = {};
+    for (const header of headers) {
+      if (header === nameKey || header === phoneKey || header === cnicKey) continue;
+      const value = cellToString(raw[header]);
+      if (value !== "") extra_data[header.trim()] = value;
+    }
+
+    return {
+      name: nameKey ? cellToString(raw[nameKey]) : "",
+      phone_number: phoneKey ? cellToString(raw[phoneKey]) : "",
+      cnic: cnicKey ? cellToString(raw[cnicKey]) : "",
+      extra_data,
+    };
+  });
 
   return rows.filter((row) => row.name !== "" || row.phone_number !== "" || row.cnic !== "");
 }

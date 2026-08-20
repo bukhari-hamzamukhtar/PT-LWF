@@ -25,6 +25,20 @@ function resolveField(action: "overwrite" | "merge", existingValue: string, newV
   return existingValue !== "" ? existingValue : newValue;
 }
 
+function resolveExtraData(
+  action: "overwrite" | "merge",
+  existing: Record<string, string> | null | undefined,
+  incoming: Record<string, string>
+) {
+  const keys = new Set([...Object.keys(existing ?? {}), ...Object.keys(incoming)]);
+  const result: Record<string, string> = {};
+  for (const key of keys) {
+    const value = resolveField(action, existing?.[key] ?? "", incoming[key] ?? "");
+    if (value !== "") result[key] = value;
+  }
+  return result;
+}
+
 export async function POST(request: Request) {
   let body: ResolveRequestBody;
   try {
@@ -69,21 +83,27 @@ export async function POST(request: Request) {
     name: (row.name ?? "").toString().trim(),
     phone_number: (row.phone_number ?? "").toString().trim(),
     cnic: (row.cnic ?? "").toString().trim(),
+    extra_data: row.extra_data ?? {},
   };
 
   const newValues = {
     name: resolveField(action, existing.name ?? "", incoming.name),
     phone_number: resolveField(action, existing.phone_number ?? "", incoming.phone_number),
     cnic: resolveField(action, existing.cnic ?? "", incoming.cnic),
+    extra_data: resolveExtraData(action, existing.extra_data, incoming.extra_data),
   };
 
   const oldValues = {
     name: existing.name ?? "",
     phone_number: existing.phone_number ?? "",
     cnic: existing.cnic ?? "",
+    extra_data: JSON.stringify(existing.extra_data ?? {}),
   };
 
-  const changes = diffFields(oldValues, newValues);
+  const changes = diffFields(oldValues, {
+    ...newValues,
+    extra_data: JSON.stringify(newValues.extra_data),
+  });
 
   if (changes.length === 0) {
     return NextResponse.json({ lala: existing, action });
@@ -95,6 +115,7 @@ export async function POST(request: Request) {
       name: trimToNull(newValues.name),
       phone_number: trimToNull(newValues.phone_number),
       cnic: trimToNull(newValues.cnic),
+      extra_data: newValues.extra_data,
     })
     .eq("id", existingId)
     .select()

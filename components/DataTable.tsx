@@ -37,6 +37,10 @@ export default function DataTable({
   onRequestDelete,
   onRequestUpload,
 }: DataTableProps) {
+  const extraColumns = Array.from(
+    new Set(lalas.flatMap((lala) => Object.keys(lala.extra_data ?? {})))
+  );
+
   if (totalActiveCount === 0) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center">
@@ -77,6 +81,11 @@ export default function DataTable({
             <th className="px-3 py-3">CNIC</th>
             <th className="px-3 py-3">Help Status</th>
             <th className="px-3 py-3">Details</th>
+            {extraColumns.map((column) => (
+              <th key={column} className="px-3 py-3">
+                {column}
+              </th>
+            ))}
             <th className="px-3 py-3 text-right sm:pr-8">Actions</th>
           </tr>
         </thead>
@@ -166,6 +175,16 @@ export default function DataTable({
                     </span>
                   )}
                 </td>
+                {extraColumns.map((column) => (
+                  <td key={column} className="max-w-[220px] px-3 py-3 align-top">
+                    <span
+                      className="block truncate text-topi-muted"
+                      title={lala.extra_data?.[column] ?? undefined}
+                    >
+                      {displayValue(lala.extra_data?.[column])}
+                    </span>
+                  </td>
+                ))}
                 <td className="px-3 py-3 align-top sm:pr-8">
                   <div className="flex items-center justify-end gap-1.5">
                     {isEditing ? (

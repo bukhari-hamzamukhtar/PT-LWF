@@ -22,7 +22,18 @@ function cleanRow(raw: ParsedRow): ParsedRow {
     name: (raw?.name ?? "").toString().trim(),
     phone_number: (raw?.phone_number ?? "").toString().trim(),
     cnic: (raw?.cnic ?? "").toString().trim(),
+    extra_data: Object.fromEntries(
+      Object.entries(raw?.extra_data ?? {})
+        .map(([key, value]) => [key.trim(), value.toString().trim()] as const)
+        .filter(([, value]) => value !== "")
+    ),
   };
+}
+
+function mergeExtraData(existing: Record<string, string> | null | undefined, incoming: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries({ ...(existing ?? {}), ...incoming }).filter(([, value]) => value !== "")
+  );
 }
 
 export async function POST(request: Request) {
@@ -75,6 +86,7 @@ export async function POST(request: Request) {
       target.name = target.name || row.name;
       target.phone_number = target.phone_number || row.phone_number;
       target.cnic = target.cnic || row.cnic;
+      target.extra_data = mergeExtraData(target.extra_data, row.extra_data);
     } else {
       const newIndex = dedupedRows.length;
       dedupedRows.push(row);
@@ -144,6 +156,7 @@ export async function POST(request: Request) {
           cnic: trimToNull(row.cnic),
           help_status: "Pending",
           details: null,
+          extra_data: row.extra_data,
         }))
       )
       .select();
