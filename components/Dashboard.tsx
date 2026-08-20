@@ -155,6 +155,32 @@ export default function Dashboard({ initialLalas, initialError }: DashboardProps
     }
   }
 
+  async function handleResolveAllDuplicates(action: DuplicateResolution) {
+    if (duplicateQueue.length === 0 || resolvingDuplicate) return;
+
+    setResolvingDuplicate(true);
+    try {
+      for (const conflict of duplicateQueue.slice(duplicateIndex)) {
+        const res = await fetch("/api/upload/resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ existingId: conflict.existing.id, row: conflict.row, action }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to resolve a duplicate.");
+      }
+
+      setDuplicateQueue([]);
+      setDuplicateIndex(0);
+      showToast("All duplicates resolved.", "success");
+      await refetchLalas();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Something went wrong.", "error");
+    } finally {
+      setResolvingDuplicate(false);
+    }
+  }
+
   // ---------- Edit flow ----------
 
   function handleStartEdit(lala: Lala) {
@@ -363,6 +389,7 @@ export default function Dashboard({ initialLalas, initialError }: DashboardProps
           total={duplicateQueue.length}
           busy={resolvingDuplicate}
           onResolve={handleResolveDuplicate}
+          onResolveAll={handleResolveAllDuplicates}
         />
       )}
 

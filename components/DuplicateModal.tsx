@@ -13,6 +13,7 @@ interface DuplicateModalProps {
   total: number;
   busy: boolean;
   onResolve: (action: DuplicateResolution) => void;
+  onResolveAll: (action: DuplicateResolution) => void;
 }
 
 const MATCH_LABEL: Record<DuplicateModalProps["matchedOn"], string> = {
@@ -43,6 +44,7 @@ export default function DuplicateModal({
   total,
   busy,
   onResolve,
+  onResolveAll,
 }: DuplicateModalProps) {
   if (!open) return null;
 
@@ -131,6 +133,38 @@ export default function DuplicateModal({
               </span>
             </span>
           </button>
+        </div>
+
+        <div className="mt-5 border-t border-topi-border pt-4">
+          <p className="mb-2 text-center text-xs text-topi-faint">
+            Or apply one choice to all {total - position + 1} remaining duplicates
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onResolveAll("overwrite")}
+              className="rounded-lg border border-topi-orange-500/40 px-3 py-2 text-xs font-medium text-topi-orange-300 transition hover:bg-topi-orange-500/10 disabled:opacity-50"
+            >
+              Overwrite all
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onResolveAll("keep_original")}
+              className="rounded-lg border border-topi-border-strong px-3 py-2 text-xs font-medium text-topi-muted transition hover:text-topi-text disabled:opacity-50"
+            >
+              Keep all
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onResolveAll("merge")}
+              className="rounded-lg border border-topi-border-strong px-3 py-2 text-xs font-medium text-topi-muted transition hover:text-topi-text disabled:opacity-50"
+            >
+              Merge all
+            </button>
+          </div>
         </div>
 
         {busy && <p className="mt-3 text-center text-xs text-topi-faint">Saving…</p>}
