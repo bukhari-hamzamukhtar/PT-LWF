@@ -125,54 +125,25 @@ export default function Dashboard({ initialLalas, initialError }: DashboardProps
     }
   }
 
-  async function handleResolveDuplicate(action: DuplicateResolution) {
-    const conflict = duplicateQueue[duplicateIndex];
-    if (!conflict) return;
-
-    setResolvingDuplicate(true);
-    try {
-      const res = await fetch("/api/upload/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ existingId: conflict.existing.id, row: conflict.row, action }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to resolve this duplicate.");
-
-      const nextIndex = duplicateIndex + 1;
-      if (nextIndex < duplicateQueue.length) {
-        setDuplicateIndex(nextIndex);
-      } else {
-        setDuplicateQueue([]);
-        setDuplicateIndex(0);
-        showToast("All duplicates resolved.", "success");
-        await refetchLalas();
-      }
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Something went wrong.", "error");
-    } finally {
-      setResolvingDuplicate(false);
-    }
-  }
-
   async function handleResolveAllDuplicates(action: DuplicateResolution) {
     if (duplicateQueue.length === 0 || resolvingDuplicate) return;
 
     setResolvingDuplicate(true);
     try {
-      for (const conflict of duplicateQueue.slice(duplicateIndex)) {
-        const res = await fetch("/api/upload/resolve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ existingId: conflict.existing.id, row: conflict.row, action }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to resolve a duplicate.");
-      }
+      const res = await fetch("/api/upload/resolve-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conflicts: duplicateQueue, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to resolve duplicates.");
 
       setDuplicateQueue([]);
       setDuplicateIndex(0);
-      showToast("All duplicates resolved.", "success");
+      showToast(
+        action === "discard" ? "Duplicate rows discarded." : "Duplicates overwritten and merged.",
+        "success"
+      );
       await refetchLalas();
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Something went wrong.", "error");
@@ -388,7 +359,6 @@ export default function Dashboard({ initialLalas, initialError }: DashboardProps
           position={duplicateIndex + 1}
           total={duplicateQueue.length}
           busy={resolvingDuplicate}
-          onResolve={handleResolveDuplicate}
           onResolveAll={handleResolveAllDuplicates}
         />
       )}

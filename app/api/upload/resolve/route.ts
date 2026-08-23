@@ -2,17 +2,17 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { diffFields, logFieldChanges } from "@/lib/history";
 import { trimToNull } from "@/lib/normalize";
-import type { DuplicateResolution, ParsedRow } from "@/lib/types";
+import type { ParsedRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 interface ResolveRequestBody {
   existingId: string;
   row: ParsedRow;
-  action: DuplicateResolution;
+  action: "overwrite" | "keep_original" | "merge";
 }
 
-const VALID_ACTIONS: DuplicateResolution[] = ["overwrite", "keep_original", "merge"];
+const VALID_ACTIONS: ResolveRequestBody["action"][] = ["overwrite", "keep_original", "merge"];
 
 /** Field-level merge rule shared by "overwrite" and "merge". */
 function resolveField(action: "overwrite" | "merge", existingValue: string, newValue: string): string {

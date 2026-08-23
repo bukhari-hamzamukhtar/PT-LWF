@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, ShieldCheck, GitMerge, UserRoundSearch } from "lucide-react";
+import { Copy, Trash2, UserRoundSearch } from "lucide-react";
 import { displayValue } from "@/lib/utils";
 import type { DuplicateResolution, Lala, ParsedRow } from "@/lib/types";
 
@@ -12,7 +12,6 @@ interface DuplicateModalProps {
   position: number;
   total: number;
   busy: boolean;
-  onResolve: (action: DuplicateResolution) => void;
   onResolveAll: (action: DuplicateResolution) => void;
 }
 
@@ -43,7 +42,6 @@ export default function DuplicateModal({
   position,
   total,
   busy,
-  onResolve,
   onResolveAll,
 }: DuplicateModalProps) {
   if (!open) return null;
@@ -88,86 +86,43 @@ export default function DuplicateModal({
           <FieldRow label="CNIC" oldValue={existing.cnic ?? ""} newValue={row.cnic} />
         </div>
 
-        <div className="mt-5 grid gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onResolve("overwrite")}
-            className="flex items-center gap-3 rounded-xl border border-topi-orange-500/40 bg-topi-orange-500/10 px-4 py-3 text-left transition hover:bg-topi-orange-500/20 disabled:opacity-50"
-          >
-            <Copy size={18} className="shrink-0 text-topi-orange-400" />
-            <span>
-              <span className="block text-sm font-semibold text-topi-text">Overwrite</span>
-              <span className="block text-xs text-topi-muted">
-                Uploaded values replace what&apos;s on file. Blank cells won&apos;t erase existing data.
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onResolve("keep_original")}
-            className="flex items-center gap-3 rounded-xl border border-topi-border-strong bg-topi-surface px-4 py-3 text-left transition hover:border-topi-faint disabled:opacity-50"
-          >
-            <ShieldCheck size={18} className="shrink-0 text-topi-muted" />
-            <span>
-              <span className="block text-sm font-semibold text-topi-text">Keep Original</span>
-              <span className="block text-xs text-topi-muted">
-                Discard the uploaded row entirely. The existing entry is left untouched.
-              </span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onResolve("merge")}
-            className="flex items-center gap-3 rounded-xl border border-topi-border-strong bg-topi-surface px-4 py-3 text-left transition hover:border-topi-faint disabled:opacity-50"
-          >
-            <GitMerge size={18} className="shrink-0 text-topi-muted" />
-            <span>
-              <span className="block text-sm font-semibold text-topi-text">Merge</span>
-              <span className="block text-xs text-topi-muted">
-                Keep what&apos;s on file wherever it exists; only use uploaded values to fill blanks.
-              </span>
-            </span>
-          </button>
-        </div>
-
-        <div className="mt-5 border-t border-topi-border pt-4">
-          <p className="mb-2 text-center text-xs text-topi-faint">
-            Or apply one choice to all {total - position + 1} remaining duplicates
+        <div className="mt-5 border-t border-topi-border pt-5">
+          <p className="mb-3 text-center text-xs text-topi-faint">
+            Choose once for all {total} duplicate rows
           </p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <div className="grid gap-2">
             <button
               type="button"
               disabled={busy}
-              onClick={() => onResolveAll("overwrite")}
-              className="rounded-lg border border-topi-orange-500/40 px-3 py-2 text-xs font-medium text-topi-orange-300 transition hover:bg-topi-orange-500/10 disabled:opacity-50"
+              onClick={() => onResolveAll("discard")}
+              className="flex items-center gap-3 rounded-xl border border-topi-border-strong bg-topi-surface px-4 py-3 text-left transition hover:border-topi-faint disabled:opacity-50"
             >
-              Overwrite all
+              <Trash2 size={18} className="shrink-0 text-topi-muted" />
+              <span>
+                <span className="block text-sm font-semibold text-topi-text">Discard</span>
+                <span className="block text-xs text-topi-muted">
+                  Ignore duplicate rows and keep the original records unchanged.
+                </span>
+              </span>
             </button>
             <button
               type="button"
               disabled={busy}
-              onClick={() => onResolveAll("keep_original")}
-              className="rounded-lg border border-topi-border-strong px-3 py-2 text-xs font-medium text-topi-muted transition hover:text-topi-text disabled:opacity-50"
+              onClick={() => onResolveAll("overwrite_merge")}
+              className="flex items-center gap-3 rounded-xl border border-topi-orange-500/40 bg-topi-orange-500/10 px-4 py-3 text-left transition hover:bg-topi-orange-500/20 disabled:opacity-50"
             >
-              Keep all
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onResolveAll("merge")}
-              className="rounded-lg border border-topi-border-strong px-3 py-2 text-xs font-medium text-topi-muted transition hover:text-topi-text disabled:opacity-50"
-            >
-              Merge all
+              <Copy size={18} className="shrink-0 text-topi-orange-400" />
+              <span>
+                <span className="block text-sm font-semibold text-topi-text">Overwrite + Merge</span>
+                <span className="block text-xs text-topi-muted">
+                  Replace matching details, add missing fields, and preserve the original help status.
+                </span>
+              </span>
             </button>
           </div>
         </div>
 
-        {busy && <p className="mt-3 text-center text-xs text-topi-faint">Saving…</p>}
+        {busy && <p className="mt-3 text-center text-xs text-topi-faint">Processing all duplicates…</p>}
       </div>
     </div>
   );

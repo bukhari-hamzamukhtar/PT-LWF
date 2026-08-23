@@ -45,7 +45,7 @@ export interface UploadConflict {
   matchedOn: ConflictMatch;
 }
 
-export type DuplicateResolution = "overwrite" | "keep_original" | "merge";
+export type DuplicateResolution = "discard" | "overwrite_merge";
 
 export interface EditableFields {
   name: string;
