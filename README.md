@@ -6,7 +6,7 @@ Next.js 16 (App Router) · TypeScript · Tailwind CSS v3 · Supabase (Postgres) 
 ## How access control works
 
 There's no Supabase Auth / OAuth — just a single shared password (`ADMIN_PASSWORD`,
-defaults to `ahmadshah`). Unlike a purely client-side check, this is enforced by
+set as an environment variable). Unlike a purely client-side check, this is enforced by
 `middleware.ts` on the server: on a correct password, `/api/auth/login` sets an
 httpOnly cookie containing a SHA-256 digest of the password, and middleware verifies
 that digest on every request before anything reaches a page or API route. Changing
